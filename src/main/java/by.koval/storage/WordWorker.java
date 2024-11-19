@@ -3,10 +3,9 @@ package by.koval.storage;
 import by.koval.model.Match;
 import org.apache.poi.xwpf.usermodel.*;
 import org.openxmlformats.schemas.wordprocessingml.x2006.main.*;
+import org.springframework.stereotype.Component;
 
-import javax.swing.*;
-import java.io.FileOutputStream;
-import java.io.IOException;
+import java.io.*;
 import java.math.BigInteger;
 import java.net.URI;
 import java.time.LocalDate;
@@ -14,13 +13,14 @@ import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.List;
 
+@Component
 public class WordWorker {
     String fileName;
 
     public void mergeRow(XWPFTableRow secondRow, String text) {
-        XWPFTableCell cell2 = secondRow.getTableCells().getFirst();
+        XWPFTableCell cell2 = secondRow.getTableCells().get(0);
         cell2.setVerticalAlignment(XWPFTableCell.XWPFVertAlign.CENTER);
-        XWPFParagraph par = cell2.getParagraphs().getFirst();
+        XWPFParagraph par = cell2.getParagraphs().get(0);
         par.setSpacingBetween(1);
         par.setAlignment(ParagraphAlignment.CENTER);
         par.setSpacingBefore(0);
@@ -30,7 +30,7 @@ public class WordWorker {
         cell1Run.setFontFamily("Cambria");
         cell1Run.setText(text);
 
-        CTTcPr tcpr = secondRow.getTableCells().getFirst().getCTTc().addNewTcPr();
+        CTTcPr tcpr = secondRow.getTableCells().get(0).getCTTc().addNewTcPr();
         CTHMerge cthMerge = tcpr.addNewHMerge();
         cthMerge.setVal(STMerge.RESTART);
         for (int i = 1; i < secondRow.getTableCells().size(); i++) {
@@ -41,108 +41,51 @@ public class WordWorker {
     }
 
     public String dateConverter(LocalDate date) {
-        String month = null;
-        switch (date.getMonth()) {
-            case APRIL:
-                month = "апреля";
-                break;
-            case MAY:
-                month = "мая";
-                break;
-            case JUNE:
-                month = "июня";
-                break;
-            case JULY:
-                month = "июля";
-                break;
-            case AUGUST:
-                month = "августа";
-                break;
-            case SEPTEMBER:
-                month = "сентября";
-                break;
-            case OCTOBER:
-                month = "октября";
-                break;
-            case NOVEMBER:
-                month = "ноября";
-                break;
-            default:
-                month = "month";
-                break;
-        }
+        String month = switch (date.getMonth()) {
+            case APRIL -> "апреля";
+            case MAY -> "мая";
+            case JUNE -> "июня";
+            case JULY -> "июля";
+            case AUGUST -> "августа";
+            case SEPTEMBER -> "сентября";
+            case OCTOBER -> "октября";
+            case NOVEMBER -> "ноября";
+            default -> "month";
+        };
 
-        return String.valueOf(date.getDayOfMonth()) + " " + month;
+        return date.getDayOfMonth() + " " + month;
     }
 
     public String dayOfWeekConverter(LocalDate date) {
-        String day = null;
+        String day = switch (date.getDayOfWeek()) {
+            case MONDAY -> "понедельник";
+            case TUESDAY -> "вторник";
+            case WEDNESDAY -> "среда";
+            case THURSDAY -> "четверг";
+            case FRIDAY -> "пятница";
+            case SATURDAY -> "суббота";
+            case SUNDAY -> "воскресенье";
+        };
 
-        switch (date.getDayOfWeek()) {
-            case MONDAY:
-                day = "понедельник";
-                break;
-            case TUESDAY:
-                day = "вторник";
-                break;
-            case WEDNESDAY:
-                day = "среда";
-                break;
-            case THURSDAY:
-                day = "четверг";
-                break;
-            case FRIDAY:
-                day = "пятница";
-                break;
-            case SATURDAY:
-                day = "суббота";
-                break;
-            case SUNDAY:
-                day = "воскресенье";
-                break;
-        }
         return day;
     }
 
-    public URI writeToDocument(List<Match> matches) throws IOException, InterruptedException {
+    public byte[] writeToDocument(List<Match> matches) throws IOException, InterruptedException {
+        byte[] bytes;
         if (matches.isEmpty()) {
-            JOptionPane.showMessageDialog(null, "No matches so far!",
-                    "Error", JOptionPane.ERROR_MESSAGE);
             return null;
         }
         WordWorker ww = new WordWorker();
-        String teamType = null;
-        switch (matches.getFirst().getChampionshipName()) {
-            case "Первая лига 2024":
-                teamType = "среди команд первой лиги.";
-                break;
-            case "Женская Высшая лига 2024":
-                teamType = "среди команд женской высшей лиги.";
-                break;
-            case "Беларусбанк - Высшая лига 2024":
-                teamType = "среди команд высшей лиги.";
-                break;
-            case "Вторая лига 2024 - Финальный этап - Группа А":
-                teamType = "среди команд второй лиги.";
-                break;
-            case "Вторая лига 2024 - Финальный этап - Группа Б":
-                teamType = "среди команд второй лиги.";
-                break;
-            case "Вторая лига 2024 - Финальный этап - Группа В":
-                teamType = "среди команд второй лиги.";
-                break;
-            case "Вторая лига 2024 - Финальный этап - Группа Г":
-                teamType = "среди команд второй лиги.";
-                break;
-            case "Вторая лига 2024 - Финальный этап - Плей-офф":
-                teamType = "среди команд второй лиги.";
-                break;
-            case "Вторая лига 2024 - Финальный этап - за 5-8 места":
-                teamType = "среди команд второй лиги.";
-                break;
-            default:
-                throw new IllegalStateException("Unexpected value: " + matches.getFirst().getChampionshipName());
-        }
+        String teamType = switch (matches.get(0).getChampionshipName()) {
+            case "Первая лига 2024" -> "среди команд первой лиги.";
+            case "Женская Высшая лига 2024" -> "среди команд женской высшей лиги.";
+            case "Беларусбанк - Высшая лига 2024" -> "среди команд высшей лиги.";
+            case "Вторая лига 2024 - Финальный этап - Группа А", "Вторая лига 2024 - Финальный этап - Группа Б",
+                 "Вторая лига 2024 - Финальный этап - Группа Г", "Вторая лига 2024 - Финальный этап - Группа В",
+                 "Вторая лига 2024 - Финальный этап - за 5-8 места",
+                 "Вторая лига 2024 - Финальный этап - Плей-офф" -> "среди команд второй лиги.";
+            default -> throw new IllegalStateException("Unexpected value: " + matches.get(0).getChampionshipName());
+        };
 
         List<LocalDate> dates = matches.stream()
                 .map(Match::getDate)
@@ -209,10 +152,10 @@ public class WordWorker {
             run.setText(teamType);
             run.addBreak();
             run.addBreak();
-            run.setText(matches.getFirst().getMatchRound() + " тур        "
-                    + ww.dateConverter(dates.getFirst())
-                    + " - " + ww.dateConverter(dates.getLast()) + " "
-                    + dates.getFirst().getYear() + " года (" + ww.dayOfWeekConverter(dates.getFirst()) + " - " + ww.dayOfWeekConverter(dates.getLast()) + ")");
+            run.setText(matches.get(0).getMatchRound() + " тур        "
+                    + ww.dateConverter(dates.get(0))
+                    + " - " + ww.dateConverter(dates.get(dates.size() - 1)) + " "
+                    + dates.get(0).getYear() + " года (" + ww.dayOfWeekConverter(dates.get(0)) + " - " + ww.dayOfWeekConverter(dates.get(dates.size() - 1)) + ")");
             run.addBreak();
             XWPFTable table = document.createTable(matches.size() + dates.size() + 1, 9);
 
@@ -221,7 +164,7 @@ public class WordWorker {
             for (int i = 0; i < firstRow.getTableCells().size(); i++) {
                 XWPFTableCell cell = firstRow.getTableCells().get(i);
                 cell.setVerticalAlignment(XWPFTableCell.XWPFVertAlign.CENTER);
-                XWPFParagraph par = cell.getParagraphs().getFirst();
+                XWPFParagraph par = cell.getParagraphs().get(0);
                 par.setSpacingBetween(1);
                 par.setAlignment(ParagraphAlignment.CENTER);
                 par.setSpacingBefore(0);
@@ -230,11 +173,11 @@ public class WordWorker {
                 cell1Run.setBold(true);
                 cell1Run.setFontFamily("Cambria");
                 if (mainCells.get(i).size() < 2) {
-                    cell1Run.setText(mainCells.get(i).getFirst());
+                    cell1Run.setText(mainCells.get(i).get(0));
                 } else {
-                    cell1Run.setText(mainCells.get(i).getFirst());
+                    cell1Run.setText(mainCells.get(i).get(0));
                     cell1Run.addBreak();
-                    cell1Run.setText(mainCells.get(i).getLast());
+                    cell1Run.setText(mainCells.get(i).get(mainCells.get(i).size()-1));
                 }
             }
 
@@ -251,7 +194,7 @@ public class WordWorker {
                     XWPFTableCell cell = row.getTableCells().get(0);
                     cell.setVerticalAlignment(XWPFTableCell.XWPFVertAlign.CENTER);
                     cell.setWidth(String.valueOf(500));
-                    XWPFParagraph par = cell.getParagraphs().getFirst();
+                    XWPFParagraph par = cell.getParagraphs().get(0);
                     par.setSpacingBetween(1);
                     par.setAlignment(ParagraphAlignment.CENTER);
                     par.setSpacingBefore(0);
@@ -265,7 +208,7 @@ public class WordWorker {
                     XWPFTableCell cell1 = row.getTableCells().get(1);
                     cell1.setVerticalAlignment(XWPFTableCell.XWPFVertAlign.CENTER);
                     cell1.setWidth(String.valueOf(4700));
-                    XWPFParagraph par1 = cell1.getParagraphs().getFirst();
+                    XWPFParagraph par1 = cell1.getParagraphs().get(0);
                     par1.setSpacingBetween(1);
                     par1.setAlignment(ParagraphAlignment.LEFT);
                     par1.setSpacingBefore(1);
@@ -283,7 +226,7 @@ public class WordWorker {
                     XWPFTableCell cell2 = row.getTableCells().get(2);
                     cell2.setWidth(String.valueOf(800));
                     cell2.setVerticalAlignment(XWPFTableCell.XWPFVertAlign.CENTER);
-                    XWPFParagraph par3 = cell2.getParagraphs().getFirst();
+                    XWPFParagraph par3 = cell2.getParagraphs().get(0);
                     par3.setSpacingBetween(1);
                     par3.setAlignment(ParagraphAlignment.CENTER);
                     par3.setSpacingBefore(0);
@@ -299,7 +242,7 @@ public class WordWorker {
                     XWPFTableCell cell4 = row.getTableCells().get(4);
                     cell4.setWidth(String.valueOf(1700));
                     cell4.setVerticalAlignment(XWPFTableCell.XWPFVertAlign.CENTER);
-                    XWPFParagraph par4 = cell4.getParagraphs().getFirst();
+                    XWPFParagraph par4 = cell4.getParagraphs().get(0);
                     par4.setSpacingBetween(1);
                     par4.setAlignment(ParagraphAlignment.LEFT);
                     par4.setSpacingBefore(0);
@@ -311,7 +254,7 @@ public class WordWorker {
                     XWPFTableCell cell5 = row.getTableCells().get(5);
                     cell5.setWidth(String.valueOf(1700));
                     cell5.setVerticalAlignment(XWPFTableCell.XWPFVertAlign.CENTER);
-                    XWPFParagraph par5 = cell5.getParagraphs().getFirst();
+                    XWPFParagraph par5 = cell5.getParagraphs().get(0);
                     par5.setSpacingBetween(1);
                     par5.setAlignment(ParagraphAlignment.LEFT);
                     par5.setSpacingBefore(0);
@@ -323,7 +266,7 @@ public class WordWorker {
                     XWPFTableCell cell6 = row.getTableCells().get(6);
                     cell6.setWidth(String.valueOf(1700));
                     cell6.setVerticalAlignment(XWPFTableCell.XWPFVertAlign.CENTER);
-                    XWPFParagraph par6 = cell6.getParagraphs().getFirst();
+                    XWPFParagraph par6 = cell6.getParagraphs().get(0);
                     par6.setSpacingBetween(1);
                     par6.setAlignment(ParagraphAlignment.LEFT);
                     par6.setSpacingBefore(0);
@@ -335,7 +278,7 @@ public class WordWorker {
                     XWPFTableCell cell7 = row.getTableCells().get(7);
                     cell7.setWidth(String.valueOf(1700));
                     cell7.setVerticalAlignment(XWPFTableCell.XWPFVertAlign.CENTER);
-                    XWPFParagraph par7 = cell7.getParagraphs().getFirst();
+                    XWPFParagraph par7 = cell7.getParagraphs().get(0);
                     par7.setSpacingBetween(1);
                     par7.setAlignment(ParagraphAlignment.LEFT);
                     par7.setSpacingBefore(0);
@@ -347,7 +290,7 @@ public class WordWorker {
                     XWPFTableCell cell8 = row.getTableCells().get(8);
                     cell8.setWidth(String.valueOf(1700));
                     cell8.setVerticalAlignment(XWPFTableCell.XWPFVertAlign.CENTER);
-                    XWPFParagraph par8 = cell8.getParagraphs().getFirst();
+                    XWPFParagraph par8 = cell8.getParagraphs().get(0);
                     par8.setSpacingBetween(1);
                     par8.setAlignment(ParagraphAlignment.LEFT);
                     par8.setSpacingBefore(0);
@@ -365,14 +308,20 @@ public class WordWorker {
                 }
             }
             // сохраняем модель docx документа в файл
-            fileName = "src/resources/Назначения " + matches.getFirst().getMatchRound() + " тур " + matches.getFirst().getChampionshipName() + ".docx";
+            fileName = "src/main/resources/Назначения " + matches.get(0).getMatchRound() + " тур " + matches.get(0).getChampionshipName() + ".docx";
             FileOutputStream outputStream = new FileOutputStream(fileName);
+            ByteArrayOutputStream outputStream1 = new ByteArrayOutputStream();
+
             document.write(outputStream);
             outputStream.close();
+            document.write(outputStream1);
+            bytes = outputStream1.toByteArray();
+            return bytes;
+
         } catch (Exception e) {
             e.printStackTrace();
         }
-        return URI.create(fileName);
+        return null;
     }
 }
 
