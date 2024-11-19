@@ -1,10 +1,10 @@
-package controller;
+package by.koval.controller;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
-import service.MatchesService;
+import by.koval.service.MatchesService;
 
 import java.io.File;
 

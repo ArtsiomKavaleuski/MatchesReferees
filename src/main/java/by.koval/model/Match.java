@@ -1,10 +1,13 @@
-package model;
+package by.koval.model;
+import lombok.Data;
+
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.ArrayList;
 
+@Data
 public class Match {
     int matchId;
     String matchDateTime;
@@ -19,6 +22,12 @@ public class Match {
     LocalDateTime dateTime;
     LocalDate date;
     ArrayList<String> officials;
+    String referee;
+    String firstAssistant;
+    String secondAssistant;
+    String fourthOfficial;
+    String inspector;
+    String delegate;
 
     public Match(int matchId, String matchDateTime, String matchDescription, int homeTeamId,
                  int awayTeamId, String championshipName, String matchStatus, int matchRound, String city, String stadium, ArrayList<String> officials) {
