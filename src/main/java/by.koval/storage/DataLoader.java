@@ -9,6 +9,7 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.time.Instant;
 import java.time.LocalTime;
 import java.util.*;
 
@@ -39,17 +40,17 @@ public class DataLoader {
     HashMap<Integer, String> fourth = new HashMap<>();
     HashMap<Integer, String> insp = new HashMap<>();
     HashMap<Integer, String> del = new HashMap<>();
-    int pages = 0;
+    int pageNumber = 0;
 
     public URI getMatchURI() {
         return URI.create("https://comet.abff.by/data-backend/api/public/areports/run/"
-                + pages + "/1000/?API_KEY=bf55c36fddd21f35ec790ea33710c04fc0627559d37aa6e1" +
+                + pageNumber + "/1000/?API_KEY=bf55c36fddd21f35ec790ea33710c04fc0627559d37aa6e1" +
                 "857488ac40f09a78129f63d6ddd792e01fe59a7f8d2418a04dec8d628ed498295ac5360361e07234");
     }
 
     public URI getRefURI() {
         return URI.create("https://comet.abff.by/data-backend/api/public/areports/run/"
-                + pages + "/1000/?API_KEY=f06b6785f05192bd0b92c9bd87271f8c7b57b367519029b8e9b546d0409ddb37f41" +
+                + pageNumber + "/1000/?API_KEY=f06b6785f05192bd0b92c9bd87271f8c7b57b367519029b8e9b546d0409ddb37f41" +
                 "fd918045fd181eb5e2c9e18d0d40c2f7ef852db052335d907eb8a99dffaed");
     }
 
@@ -103,18 +104,6 @@ public class DataLoader {
         return matchesList;
     }
 
-    public List<Match> getSortedMatches(List<String> champName) {
-        List<Match> matchesList = new ArrayList<>();
-        for(String champ : champName) {
-            matchesList.addAll(matches.values().stream()
-                    .filter(m -> m.getChampionshipName().equals(champ))
-                    .sorted(new MatchByDateComparator())
-                    .toList());
-            System.out.println(champ);
-        }
-        return matchesList;
-    }
-
     public List<Match> getSortedMatches(String champName, int round) {
         return matches.values().stream()
                 .filter(m -> m.getChampionshipName().equals(champName))
@@ -132,9 +121,11 @@ public class DataLoader {
 
 
     public void loadResults() throws InterruptedException, IOException {
+        double time = Instant.now().getNano();
         JsonArray matches = null;
         JsonArray referees = null;
         while (true) {
+            double time1 = Instant.now().getNano();
             HttpRequest request = HttpRequest.newBuilder()
                     .GET()
                     .uri(getMatchURI())
@@ -147,7 +138,7 @@ public class DataLoader {
             JsonElement jsonElement = JsonParser.parseString(response.body());
             JsonArray jsonArray = jsonElement.getAsJsonObject().get("results").getAsJsonArray();
             if (jsonArray.isEmpty()) {
-                pages = 0;
+                pageNumber = 0;
                 break;
             }
             if(matches == null){
@@ -155,12 +146,13 @@ public class DataLoader {
             } else {
                 matches.addAll(jsonArray);
             }
-            System.out.println("page " + pages + " of Matchecs was loaded");
-            pages++;
+            double time2 = Instant.now().getNano() - time1;
+            System.out.println("page " + pageNumber + " of Matches was loaded in " + time2/1000000000 + " sec");
+            pageNumber++;
         }
 
         while (true) {
-            int time1 = LocalTime.now().getSecond();
+            double time1 = LocalTime.now().getSecond();
             HttpRequest request = HttpRequest.newBuilder()
                     .GET()
                     .uri(getRefURI())
@@ -173,7 +165,7 @@ public class DataLoader {
             JsonElement jsonElement = JsonParser.parseString(response.body());
             JsonArray jsonArray = jsonElement.getAsJsonObject().get("results").getAsJsonArray();
             if (jsonArray.isEmpty()) {
-                pages = 0;
+                pageNumber = 0;
                 break;
             }
             if(referees == null){
@@ -181,11 +173,14 @@ public class DataLoader {
             } else {
                 referees.addAll(jsonArray);
             }
-            int time2 = LocalTime.now().getSecond() - time1;
-            System.out.println("page " + pages + " of Referees was loaded in " + time2 + " sec");
-            pages++;
+            double time2 = LocalTime.now().getSecond() - time1;
+            System.out.println("page " + pageNumber + " of Referees was loaded in " + time2 + " sec");
+            pageNumber++;
         }
+        double timeAvg = Instant.now().getNano() - time;
+        System.out.println("All data was loaded in " + timeAvg/1000000000 + " sec");
 
+        assert referees != null;
         for (JsonElement j : referees) {
             if (!j.getAsJsonObject().get("roleStatus").toString().contains("ОТКАЗАНО") && (j.getAsJsonObject().get("name").getAsString().equals("Женская Высшая лига 2024") ||
                     j.getAsJsonObject().get("name").getAsString().contains("Суперкубок") ||
@@ -207,6 +202,7 @@ public class DataLoader {
             }
         }
 
+        assert matches != null;
         for (JsonElement j : matches) {
             if (j.getAsJsonObject().get("name").getAsString().equals("Женская Высшая лига 2024") ||
                     j.getAsJsonObject().get("name").getAsString().contains("Суперкубок") ||
@@ -229,16 +225,16 @@ public class DataLoader {
                 int matchRound = Integer.parseInt(j.getAsJsonObject().get("round").getAsString());
                 String city = j.getAsJsonObject().get("facilityPlaceName").getAsString();
                 String stadium = j.getAsJsonObject().get("facility").getAsString();
-                ArrayList<String> ofNames = new ArrayList<>();
-                ofNames.add(ref.get(matchId));
-                ofNames.add(first.get(matchId));
-                ofNames.add(second.get(matchId));
-                ofNames.add(fourth.get(matchId));
-                ofNames.add(insp.get(matchId));
-                ofNames.add(del.get(matchId));
+                ArrayList<String> officials = new ArrayList<>();
+                officials.add(ref.get(matchId));
+                officials.add(first.get(matchId));
+                officials.add(second.get(matchId));
+                officials.add(fourth.get(matchId));
+                officials.add(insp.get(matchId));
+                officials.add(del.get(matchId));
 
                 Match match = new Match(matchId, matchDateTime, matchDescription, homeTeamId,
-                        awayTeamId, championshipName, matchStatus, matchRound, city, stadium, ofNames);
+                        awayTeamId, championshipName, matchStatus, matchRound, city, stadium, officials);
                 add(match);
             }
         }

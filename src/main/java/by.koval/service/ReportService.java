@@ -8,6 +8,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
+import java.util.List;
 
 @Service
 @Slf4j
@@ -51,5 +52,9 @@ public class ReportService {
 
     public void refreshData() throws IOException, InterruptedException {
         dataLoader.loadResults();
+    }
+
+    public List<String> getChampionshipNames() {
+        return dataLoader.getChampionships();
     }
 }

@@ -7,7 +7,6 @@ import org.springframework.stereotype.Component;
 
 import java.io.*;
 import java.math.BigInteger;
-import java.net.URI;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
@@ -42,6 +41,9 @@ public class WordWorker {
 
     public String dateConverter(LocalDate date) {
         String month = switch (date.getMonth()) {
+            case JANUARY -> "января";
+            case FEBRUARY -> "февраля";
+            case MARCH -> "марта";
             case APRIL -> "апреля";
             case MAY -> "мая";
             case JUNE -> "июня";
@@ -50,7 +52,7 @@ public class WordWorker {
             case SEPTEMBER -> "сентября";
             case OCTOBER -> "октября";
             case NOVEMBER -> "ноября";
-            default -> "month";
+            case DECEMBER -> "декабря";
         };
 
         return date.getDayOfMonth() + " " + month;
@@ -152,11 +154,18 @@ public class WordWorker {
             run.setText(teamType);
             run.addBreak();
             run.addBreak();
-            run.setText(matches.get(0).getMatchRound() + " тур        "
-                    + ww.dateConverter(dates.get(0))
-                    + " - " + ww.dateConverter(dates.get(dates.size() - 1)) + " "
-                    + dates.get(0).getYear() + " года (" + ww.dayOfWeekConverter(dates.get(0)) + " - " + ww.dayOfWeekConverter(dates.get(dates.size() - 1)) + ")");
-            run.addBreak();
+            if(dates.size() == 1) {
+                run.setText(matches.get(0).getMatchRound() + " тур        "
+                        + ww.dateConverter(dates.get(0))
+                        + " " + dates.get(0).getYear() + " года (" + ww.dayOfWeekConverter(dates.get(0)) + ")");
+            } else {
+                run.setText(matches.get(0).getMatchRound() + " тур        "
+                        + ww.dateConverter(dates.get(0))
+                        + " - " + ww.dateConverter(dates.get(dates.size() - 1)) + " "
+                        + dates.get(0).getYear() + " года (" + ww.dayOfWeekConverter(dates.get(0)) + " - " + ww.dayOfWeekConverter(dates.get(dates.size() - 1)) + ")");
+            }
+                run.addBreak();
+
             XWPFTable table = document.createTable(matches.size() + dates.size() + 1, 9);
 
             XWPFTableRow firstRow = table.getRows().get(0);
